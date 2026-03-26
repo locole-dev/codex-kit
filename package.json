@@ -1,0 +1,27 @@
+{
+  "name": "@locole/locole-skills",
+  "version": "0.2.1",
+  "description": "Bootstrap the Locole .agent toolkit and .codex/skills into a project for team-shared Cursor/Codex workflows.",
+  "author": "Locole",
+  "keywords": [
+    "codex",
+    "cursor",
+    "agent",
+    "skills",
+    "workflow",
+    "toolkit"
+  ],
+  "bin": {
+    "locole-skills": "bin/locole-skills.js"
+  },
+  "files": [
+    "bin",
+    ".agent",
+    ".codex/skills",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "_notes": [
+    "Example MCP configuration for the Locole toolkit.",
+    "Copy the servers you need into the host-specific MCP config used by your runtime."
+  ],
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "YOUR_API_KEY"
+      ]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
+    }
+  }
+}

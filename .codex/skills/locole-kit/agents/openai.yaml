@@ -1,0 +1,4 @@
+interface:
+  display_name: "Locole Kit"
+  short_description: "Route work through local .agent files"
+  default_prompt: "Use $locole-kit and sync the project rule for this repository."

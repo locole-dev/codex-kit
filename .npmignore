@@ -1,0 +1,4 @@
+**/__pycache__/
+**/__pycache__/**
+**/*.pyc
+.agent/PROJECT_RULES.md
