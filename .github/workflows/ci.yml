@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Verify package tarball
+        run: npm pack --dry-run
+
+      - name: Security scan
+        run: python .agent/skills/vulnerability-scanner/scripts/security_scan.py . --output summary
+
+      - name: Python lint runner
+        run: python .agent/skills/lint-and-validate/scripts/lint_runner.py .
+
+      - name: Python test runner
+        run: python .agent/skills/testing-patterns/scripts/test_runner.py .

@@ -76,6 +76,32 @@ function countSkillDirs(skillsRoot) {
     .filter((d) => d.isDirectory()).length;
 }
 
+function makeTempPath(parentDir, label) {
+  const stamp = `${process.pid}-${Date.now()}-${Math.random()
+    .toString(16)
+    .slice(2, 10)}`;
+  return path.join(parentDir, `.${label}.locole-${stamp}`);
+}
+
+function removePathIfExists(targetPath) {
+  if (!targetPath || !fs.existsSync(targetPath)) {
+    return;
+  }
+
+  fs.rmSync(targetPath, { recursive: true, force: true });
+}
+
+function restoreDestination(destinationDir, backupDir) {
+  if (fs.existsSync(destinationDir)) {
+    removePathIfExists(destinationDir);
+  }
+
+  if (backupDir && fs.existsSync(backupDir)) {
+    fs.mkdirSync(path.dirname(destinationDir), { recursive: true });
+    fs.renameSync(backupDir, destinationDir);
+  }
+}
+
 function runInit(args) {
   const overwrite = args.includes('--force');
   const packageRoot = path.resolve(__dirname, '..');
@@ -116,21 +142,44 @@ function runInit(args) {
     }
   }
 
+  let stagedAgentDir = null;
+  let stagedCodexSkillsDir = null;
+  let agentBackupDir = null;
+  let codexBackupDir = null;
+
   try {
-    if (overwrite) {
-      if (fs.existsSync(destinationAgentDir)) {
-        fs.rmSync(destinationAgentDir, { recursive: true, force: true });
-      }
-      if (fs.existsSync(destinationCodexSkillsDir)) {
-        fs.rmSync(destinationCodexSkillsDir, { recursive: true, force: true });
-      }
+    stagedAgentDir = makeTempPath(cwd, 'agent-stage');
+    stagedCodexSkillsDir = makeTempPath(cwd, 'codex-skills-stage');
+
+    copyDirectory(sourceAgentDir, stagedAgentDir, true);
+    copyDirectory(sourceCodexSkills, stagedCodexSkillsDir, true);
+
+    if (overwrite && fs.existsSync(destinationAgentDir)) {
+      agentBackupDir = makeTempPath(cwd, 'agent-backup');
+      fs.renameSync(destinationAgentDir, agentBackupDir);
     }
 
-    copyDirectory(sourceAgentDir, destinationAgentDir, true);
-    console.log('[OK] Locole .agent toolkit initialized successfully.');
-    console.log(`[i] Target: ${destinationAgentDir}`);
+    if (overwrite && fs.existsSync(destinationCodexSkillsDir)) {
+      const codexParentDir = path.dirname(destinationCodexSkillsDir);
+      fs.mkdirSync(codexParentDir, { recursive: true });
+      codexBackupDir = makeTempPath(codexParentDir, 'skills-backup');
+      fs.renameSync(destinationCodexSkillsDir, codexBackupDir);
+    }
 
-    copyDirectory(sourceCodexSkills, destinationCodexSkillsDir, true);
+    fs.renameSync(stagedAgentDir, destinationAgentDir);
+    stagedAgentDir = null;
+
+    fs.mkdirSync(path.dirname(destinationCodexSkillsDir), { recursive: true });
+    fs.renameSync(stagedCodexSkillsDir, destinationCodexSkillsDir);
+    stagedCodexSkillsDir = null;
+
+    removePathIfExists(agentBackupDir);
+    removePathIfExists(codexBackupDir);
+    agentBackupDir = null;
+    codexBackupDir = null;
+
+    console.log('[OK] Locole toolkit initialized successfully.');
+    console.log(`[i] Toolkit: ${destinationAgentDir}`);
     console.log(
       `[OK] Copied ${skillCount} Codex skills into project: ${destinationCodexSkillsDir}`
     );
@@ -141,6 +190,10 @@ function runInit(args) {
       '[i] Restart Cursor/Codex after pull if skills do not refresh.'
     );
   } catch (error) {
+    removePathIfExists(stagedAgentDir);
+    removePathIfExists(stagedCodexSkillsDir);
+    restoreDestination(destinationAgentDir, agentBackupDir);
+    restoreDestination(destinationCodexSkillsDir, codexBackupDir);
     console.error(`[X] Init failed: ${error.message}`);
     process.exit(1);
   }

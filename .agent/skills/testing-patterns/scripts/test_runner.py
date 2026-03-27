@@ -14,6 +14,8 @@ Supports:
 import subprocess
 import sys
 import json
+import platform
+import argparse
 from pathlib import Path
 from datetime import datetime
 
@@ -92,6 +94,10 @@ def run_tests(cmd: list, cwd: Path) -> dict:
     }
     
     try:
+        if platform.system() == "Windows" and cmd[0] in ["npm", "npx"]:
+            cmd = cmd.copy()
+            cmd[0] = f"{cmd[0]}.cmd"
+
         proc = subprocess.run(
             cmd,
             cwd=str(cwd),
@@ -142,8 +148,24 @@ def run_tests(cmd: list, cwd: Path) -> dict:
 
 
 def main():
-    project_path = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
-    with_coverage = "--coverage" in sys.argv
+    parser = argparse.ArgumentParser(
+        description="Run repository tests with optional coverage",
+    )
+    parser.add_argument("project", nargs="?", default=".", help="Project path")
+    parser.add_argument(
+        "--coverage",
+        action="store_true",
+        help="Run the framework's coverage command when available",
+    )
+    parser.add_argument(
+        "--allow-missing",
+        action="store_true",
+        help="Exit successfully when the project has no configured test runner",
+    )
+    args = parser.parse_args()
+
+    project_path = Path(args.project).resolve()
+    with_coverage = args.coverage
     
     print(f"\n{'='*60}")
     print(f"[TEST RUNNER] Unified Test Execution")
@@ -165,11 +187,11 @@ def main():
             "project": str(project_path),
             "type": test_info["type"],
             "framework": None,
-            "passed": True,
+            "passed": args.allow_missing,
             "message": "No tests configured"
         }
         print(json.dumps(output, indent=2))
-        sys.exit(0)
+        sys.exit(0 if args.allow_missing else 1)
     
     # Choose command
     cmd = test_info["coverage_cmd"] if with_coverage and test_info["coverage_cmd"] else test_info["cmd"]

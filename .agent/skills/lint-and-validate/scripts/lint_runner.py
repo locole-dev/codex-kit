@@ -15,7 +15,7 @@ import subprocess
 import sys
 import json
 import platform
-import shutil
+import argparse
 from pathlib import Path
 from datetime import datetime
 
@@ -100,7 +100,7 @@ def run_linter(linter: dict, cwd: Path) -> dict:
             encoding='utf-8',
             errors='replace',
             timeout=120,
-            shell=platform.system() == "Windows" # Shell=True often helps with path resolution on Windows
+            shell=False
         )
         
         result["output"] = proc.stdout[:2000] if proc.stdout else ""
@@ -118,7 +118,18 @@ def run_linter(linter: dict, cwd: Path) -> dict:
 
 
 def main():
-    project_path = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
+    parser = argparse.ArgumentParser(
+        description="Run repository linters and type checks",
+    )
+    parser.add_argument("project", nargs="?", default=".", help="Project path")
+    parser.add_argument(
+        "--allow-missing",
+        action="store_true",
+        help="Exit successfully when the project has no configured linters",
+    )
+    args = parser.parse_args()
+
+    project_path = Path(args.project).resolve()
     
     print(f"\n{'='*60}")
     print(f"[LINT RUNNER] Unified Linting")
@@ -139,11 +150,11 @@ def main():
             "project": str(project_path),
             "type": project_info["type"],
             "checks": [],
-            "passed": True,
+            "passed": args.allow_missing,
             "message": "No linters configured"
         }
         print(json.dumps(output, indent=2))
-        sys.exit(0)
+        sys.exit(0 if args.allow_missing else 1)
     
     # Run each linter
     results = []

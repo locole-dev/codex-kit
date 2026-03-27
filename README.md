@@ -45,6 +45,7 @@ npx locole-skills init
 Requirements:
 
 - Node.js `>=18`
+- Python `>=3.8` for onboarding, validation, and repo-rule scripts under `.agent/scripts/`
 
 ## Quick start
 
@@ -126,12 +127,16 @@ python .agent/scripts/verify_all.py . --url http://localhost:3000
 ```
 
 Use `--url` only when you want web checks such as Lighthouse or Playwright.
+These commands now exit non-zero when high-severity security issues are found or when lint/test tooling is missing.
 
 ## Development
 
 Useful local checks while maintaining this package:
 
 ```bash
+npm run lint
+npm test
+npm run pack:check
 node bin/locole-skills.js --help
 node bin/locole-skills.js --version
 npm pack --dry-run
@@ -152,6 +157,9 @@ Publish steps:
 npm login
 npm publish --access public
 ```
+
+`npm publish` runs `prepublishOnly`, which executes `npm run lint`, `npm test`, and `npm run pack:check` before publishing.
+GitHub Actions also validates Node `18`, `20`, and `22`, plus the Python-based security, lint, and test runners on every push and pull request.
 
 ## Notes
 
